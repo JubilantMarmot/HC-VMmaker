@@ -42,6 +42,33 @@ def create_vm(conn, name, memory_mb, vcpu_count, disk_size_gb):
     except libvirt.libvirtError as e:
         print(f"Failed to create VM: {e}")
 
+def list_vms(conn):
+    """Lists all VMs"""
+    try:
+        vms = conn.listAllDomains()
+        if not vms:
+            print("No VMs found.")
+            return
+
+        print("\nExisting VMs:")
+        for vm in vms:
+            name = vm.name()
+            print(f"- {name}")
+        return vms
+    except libvirt.libvirtError as e:
+        print(f"Failed to list VMs: {e}")
+        return []
+
+def delete_vm(conn, name):
+    """Deletes the VM with the given name"""
+    try:
+        vm = conn.lookupByName(name)
+        vm.destroy()
+        vm.undefine()
+        print(f"VM '{name}' deleted successfully.")
+    except libvirt.libvirtError as e:
+        print(f"Failed to delete VM: {e}")
+
 def main():
     conn = libvirt.open('qemu:///system')
     if conn is None:
@@ -51,7 +78,9 @@ def main():
     while True:
         print("\nVirtual Machine Manager")
         print("1. Create a VM")
-        print("2. Exit")
+        print("2. List VMs")
+        print("3. Delete a VM")
+        print("4. Exit")
         choice = input("Enter your choice: ")
 
         if choice == '1':
@@ -63,6 +92,13 @@ def main():
             create_vm(conn, name, memory_mb, vcpu_count, disk_size_gb)
         
         elif choice == '2':
+            list_vms(conn)
+        
+        elif choice == '3':
+            name = input("Enter the name of the VM to delete: ")
+            delete_vm(conn, name)
+        
+        elif choice == '4':
             break
         
         else:
