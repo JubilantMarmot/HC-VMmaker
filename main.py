@@ -53,7 +53,9 @@ def list_vms(conn):
         print("\nExisting VMs:")
         for vm in vms:
             name = vm.name()
-            print(f"- {name}")
+            state = vm.info()[0]  # VM state: 1 = running, 0 = shut off
+            state_str = "running" if state == libvirt.VIR_DOMAIN_RUNNING else "shut off"
+            print(f"- {name} ({state_str})")
         return vms
     except libvirt.libvirtError as e:
         print(f"Failed to list VMs: {e}")
@@ -69,6 +71,46 @@ def delete_vm(conn, name):
     except libvirt.libvirtError as e:
         print(f"Failed to delete VM: {e}")
 
+def start_vm(conn, name):
+    """Starts the VM with the given name"""
+    try:
+        vm = conn.lookupByName(name)
+        if vm.info()[0] == libvirt.VIR_DOMAIN_RUNNING:
+            print(f"VM '{name}' is already running.")
+        else:
+            vm.create()
+            print(f"VM '{name}' started successfully.")
+    except libvirt.libvirtError as e:
+        print(f"Failed to start VM: {e}")
+
+def stop_vm(conn, name):
+    """Stops the VM with the given name"""
+    try:
+        vm = conn.lookupByName(name)
+        if vm.info()[0] == libvirt.VIR_DOMAIN_RUNNING:
+            vm.shutdown()
+            print(f"VM '{name}' is shutting down.")
+        else:
+            print(f"VM '{name}' is not running.")
+    except libvirt.libvirtError as e:
+        print(f"Failed to stop VM: {e}")
+
+def restart_vm(conn, name):
+    """Restarts the VM with the given name"""
+    try:
+        vm = conn.lookupByName(name)
+        if vm.info()[0] == libvirt.VIR_DOMAIN_RUNNING:
+            vm.reboot()
+            print(f"VM '{name}' is rebooting.")
+        else:
+            print(f"VM '{name}' is not running. Starting VM first.")
+            vm.create()
+            print(f"VM '{name}' started successfully. Restarting now.")
+            vm.reboot()
+            print(f"VM '{name}' is rebooting.")
+    except libvirt.libvirtError as e:
+        print(f"Failed to restart VM: {e}")
+
 def main():
     conn = libvirt.open('qemu:///system')
     if conn is None:
@@ -79,8 +121,11 @@ def main():
         print("\nVirtual Machine Manager")
         print("1. Create a VM")
         print("2. List VMs")
-        print("3. Delete a VM")
-        print("4. Exit")
+        print("3. Start a VM")
+        print("4. Stop a VM")
+        print("5. Restart a VM")
+        print("6. Delete a VM")
+        print("7. Exit")
         choice = input("Enter your choice: ")
 
         if choice == '1':
@@ -95,10 +140,22 @@ def main():
             list_vms(conn)
         
         elif choice == '3':
+            name = input("Enter the name of the VM to start: ")
+            start_vm(conn, name)
+        
+        elif choice == '4':
+            name = input("Enter the name of the VM to stop: ")
+            stop_vm(conn, name)
+        
+        elif choice == '5':
+            name = input("Enter the name of the VM to restart: ")
+            restart_vm(conn, name)
+        
+        elif choice == '6':
             name = input("Enter the name of the VM to delete: ")
             delete_vm(conn, name)
         
-        elif choice == '4':
+        elif choice == '7':
             break
         
         else:
